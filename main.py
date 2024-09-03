@@ -1,5 +1,3 @@
-from operator import index
-
 from fastapi import FastAPI, BackgroundTasks
 from tasks import long_running_task
 from pydantic import BaseModel
