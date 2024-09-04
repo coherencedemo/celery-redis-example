@@ -1,8 +1,11 @@
+import os
 from celery import Celery
 import time
 
 # Initialize Celery with Redis as the broker
-app = Celery('tasks', broker='redis://redis:6379/0', backend='redis://redis:6379/0')
+REDIS_URL = os.getenv("REDIS_QUEUE_URL", "redis://queue:6379/0")
+
+app = Celery('tasks', broker='redis://redis_queue:6379/0', backend='redis://redis_queue:6379/0')
 
 
 # Define a long-running task
