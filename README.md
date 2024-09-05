@@ -1,1 +1,1 @@
-## NOTE: Change Redis Service to just `Redis`
+## NOTE: Change Redis service name to just `Redis`
