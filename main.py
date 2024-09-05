@@ -1,35 +1,23 @@
-from fastapi import FastAPI, BackgroundTasks
-from tasks import long_running_task
-from pydantic import BaseModel
+from fastapi import FastAPI
+from rq import Queue
+from redis import Redis
+from rq.job import Job
 
 app = FastAPI()
 
+# Establish connection to Redis
+redis_host = "redis"  # This will be your container name for Redis in Docker
+redis_conn = Redis(host=redis_host, port=6379)
+queue = Queue(connection=redis_conn)
 
-class TaskRequest(BaseModel):
-	duration: int
+@app.post("/tasks/")
+def enqueue_task(duration: int):
+    """Endpoint to receive duration and enqueue a task."""
+    job = queue.enqueue('tasks.background_task', duration)
+    return {"job_id": job.id, "status": "Task enqueued"}
 
-
-@app.get("/")
-async def read_root():
-	return {"message": "Hello World"}
-
-
-@app.get("/health")
-async def health():
-	return {"status": "ok"}
-
-
-@app.post("/run-task/")
-async def run_task(request: TaskRequest):
-	# Enqueue the Celery task
-	result = long_running_task.delay(request.duration)
-
-	# Return the task ID immediately
-	return {"task_id": result.id, "state": result.state}
-
-
-@app.get("/get-task/{task_id}")
-async def task_status(task_id: str):
-	# Check the status of the task
-	result = long_running_task.AsyncResult(task_id)
-	return {"task_id": task_id, "state": result.state, "result": result.result}
+@app.get("/tasks/{job_id}")
+def get_task_status(job_id: str):
+    """Endpoint to check the status of a task."""
+    job = Job.fetch(job_id, connection=redis_conn)
+    return {"job_id": job_id, "status": job.get_status(), "result": job.result}
